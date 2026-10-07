@@ -52,6 +52,9 @@ def handle_message(event):
             response = client.models.generate_content(
                 model=model_name,
                 contents=user_message,
+                config={
+                    'system_instruction': 'Jawab selalu menggunakan Bahasa Indonesia yang natural, ramah, dan santai.'
+                }
             )
             ai_reply = response.text
             if ai_reply:
