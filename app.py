@@ -38,17 +38,31 @@ def handle_message(event):
     user_message = event.message.text
     print(f"Pesan diterima dari user: {user_message}")
     
-    try:
-        # Meminta jawaban dari Gemini AI
-        response = client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=user_message,
-        )
-        ai_reply = response.text
-        print(f"Jawaban Gemini: {ai_reply}")
-    except Exception as e:
-        print(f"Gemini API Error Detail: {e}")
-        ai_reply = f"Maaf, terjadi kesalahan pada sistem AI: {str(e)}"
+    # Daftar urutan model yang akan dicoba secara otomatis
+    models_to_try = [
+        'gemini-3.6-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-pro'
+    ]
+    
+    ai_reply = None
+    for model_name in models_to_try:
+        try:
+            print(f"Mencoba menggunakan model: {model_name}")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=user_message,
+            )
+            ai_reply = response.text
+            if ai_reply:
+                print(f"Berhasil dengan model {model_name}! Jawaban: {ai_reply}")
+                break
+        except Exception as e:
+            print(f"Gagal dengan model {model_name}: {e}")
+            continue
+
+    if not ai_reply:
+        ai_reply = "Maaf, semua model AI sedang sibuk atau mengalami kendala."
 
     # Membalas pesan secara otomatis ke LINE user/grup
     line_bot_api.reply_message(
