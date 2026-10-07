@@ -17,14 +17,14 @@ def callback():
     signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
     
-    # Mengabaikan pengecekan ketat untuk verifikasi atau ping kosong dari LINE
-    if not signature or not body:
+    # Mengabaikan verifikasi kosong dari dashboard LINE
+    if not signature and not body:
         return 'OK'
 
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-        return 'OK'
+        abort(400)
 
     return 'OK'
 
@@ -33,7 +33,7 @@ def handle_message(event):
     user_message = event.message.text
     
     try:
-        # Meminta jawaban dari Gemini AI
+        # Meminta jawaban dari Gemini AI menggunakan model resmi
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=user_message,
