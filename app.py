@@ -17,7 +17,6 @@ def callback():
     signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
     
-    # Cetak log untuk memastikan webhook LINE benar-benar masuk ke server
     print(f"Incoming request body: {body}")
 
     if not signature and not body:
@@ -48,8 +47,8 @@ def handle_message(event):
         ai_reply = response.text
         print(f"Jawaban Gemini: {ai_reply}")
     except Exception as e:
-        print(f"Gemini API Error: {e}")
-        ai_reply = "Maaf, terjadi kesalahan pada sistem AI."
+        print(f"Gemini API Error Detail: {e}")
+        ai_reply = f"Maaf, terjadi kesalahan pada sistem AI: {str(e)}"
 
     # Membalas pesan secara otomatis ke LINE user/grup
     line_bot_api.reply_message(
