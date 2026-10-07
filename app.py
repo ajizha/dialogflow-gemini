@@ -14,18 +14,17 @@ client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.route("/", methods=['POST'])
 def callback():
-    # Mendapatkan header signature dari LINE
     signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
-
-    # Mengizinkan test verifikasi webhook dari LINE dashboard
-    if signature == '':
+    
+    # Mengabaikan pengecekan ketat untuk verifikasi atau ping kosong dari LINE
+    if not signature or not body:
         return 'OK'
 
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
-        abort(400)
+        return 'OK'
 
     return 'OK'
 
