@@ -1,19 +1,36 @@
 import os
-from flask import Flask, request, jsonify
+from flask import Flask, request, abort
+from linebot import LineBotApi, WebhookHandler
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage
 from google import genai
 
 app = Flask(__name__)
+
+# Konfigurasi LINE & Gemini dari Environment Variables Railway
+line_bot_api = LineBotApi(os.environ.get("LINE_CHANNEL_ACCESS_TOKEN"))
+handler = WebhookHandler(os.environ.get("LINE_CHANNEL_SECRET"))
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.route("/", methods=['POST'])
-def webhook():
-    req = request.get_json(silent=True, force=True)
-    user_message = req.get('queryResult', {}).get('queryText', '')
-
-    if not user_message:
-        return jsonify({"fulfillmentText": "Maaf, pesan tidak terbaca."})
+def callback():
+    # Mendapatkan header signature dari LINE
+    signature = request.headers.get('X-Line-Signature', '')
+    body = request.get_data(as_text=True)
 
     try:
+        handler.handle(body, signature)
+    except InvalidSignatureError:
+        abort(400)
+
+    return 'OK'
+
+@handler.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    user_message = event.message.text
+    
+    try:
+        # Meminta jawaban dari Gemini AI
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=user_message,
@@ -22,7 +39,11 @@ def webhook():
     except Exception as e:
         ai_reply = "Maaf, terjadi kesalahan pada sistem AI."
 
-    return jsonify({"fulfillmentText": ai_reply})
+    # Membalas pesan secara otomatis ke LINE user/grup
+    line_bot_api.reply_message(
+        event.reply_token,
+        TextSendMessage(text=ai_reply)
+    )
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
