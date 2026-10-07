@@ -18,6 +18,10 @@ def callback():
     signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
 
+    # Mengizinkan test verifikasi webhook dari LINE dashboard
+    if signature == '':
+        return 'OK'
+
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
