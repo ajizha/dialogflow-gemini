@@ -17,29 +17,38 @@ def callback():
     signature = request.headers.get('X-Line-Signature', '')
     body = request.get_data(as_text=True)
     
-    # Mengabaikan verifikasi kosong dari dashboard LINE
+    # Cetak log untuk memastikan webhook LINE benar-benar masuk ke server
+    print(f"Incoming request body: {body}")
+
     if not signature and not body:
         return 'OK'
 
     try:
         handler.handle(body, signature)
-    except InvalidSignatureError:
+    except InvalidSignatureError as e:
+        print(f"Invalid signature error: {e}")
         abort(400)
+    except Exception as e:
+        print(f"Webhook handling error: {e}")
+        abort(500)
 
     return 'OK'
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_message = event.message.text
+    print(f"Pesan diterima dari user: {user_message}")
     
     try:
-        # Meminta jawaban dari Gemini AI menggunakan model resmi
+        # Meminta jawaban dari Gemini AI
         response = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=user_message,
         )
         ai_reply = response.text
+        print(f"Jawaban Gemini: {ai_reply}")
     except Exception as e:
+        print(f"Gemini API Error: {e}")
         ai_reply = "Maaf, terjadi kesalahan pada sistem AI."
 
     # Membalas pesan secara otomatis ke LINE user/grup
@@ -47,6 +56,7 @@ def handle_message(event):
         event.reply_token,
         TextSendMessage(text=ai_reply)
     )
+    print("Pesan balasan berhasil dikirim ke LINE!")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
